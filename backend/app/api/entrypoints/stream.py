@@ -45,8 +45,6 @@ async def stream(
     Returns:
         StreamingResponse: The streaming response.
     """
-    ree = await file.read()
-    import pdb; pdb.set_trace()
     # Variables
     run_collector = RunCollectorCallbackHandler()
     runnable_config = RunnableConfig(callbacks=[run_collector])
