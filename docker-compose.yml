@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  backend:
+    hostname: backend
+    build:
+      context: backend/
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    command: make start
+    networks:
+      default:
+
+
+  frontend:
+    hostname: frontend
+    build:
+      context: frontend/
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://backend:8000/api/stream
+    ports:
+      - "8501:8501"
+    command: make start
+
+networks:
+  default:
