@@ -92,17 +92,17 @@ Performance: It would work with continuous flow frameworks (you can work with an
 Here are some metrics in relation to performance, capacities, consumption and output quality:
 Real Product Scenarios: Measuring LLM performance on user traffic in real product scenarios is essential to evaluate these human-like abilities and guarantee a safe and valuable experience to the end user1.
 
-Continuous Evaluation: Continuous evaluation of features as they are being developed provides early insight into any regressions or negative user experience while also informing design decisions1.
+- Continuous Evaluation: Continuous evaluation of features as they are being developed provides early insight into any regressions or negative user experience while also informing design decisions1.
 
-GPU Utilization: To estimate the usage cost of an LLM, we measure the GPU Utilization of the LLM. The main unit used for measurement is a token1.
+- GPU Utilization: To estimate the usage cost of an LLM, we measure the GPU Utilization of the LLM. The main unit used for measurement is a token1.
 
-Number of 429 responses: A 429 error response is sent when the model and/or service is currently overloaded. Measuring the 95th or 90th percentile of the number of 429 responses can help measure peak performance1.
+- Number of 429 responses: A 429 error response is sent when the model and/or service is currently overloaded. Measuring the 95th or 90th percentile of the number of 429 responses can help measure peak performance1.
 
-Total number of tokens: This is computed as the sum of prompt tokens and completion tokens. This is the main utilization metric recommended for tracking GPU Utilization1.
+- Total number of tokens: This is computed as the sum of prompt tokens and completion tokens. This is the main utilization metric recommended for tracking GPU Utilization1.
 
-Synthetic Benchmarks: Developers, researchers, and enterprise adopters increasingly rely on synthetic benchmarks and other evaluation tools to measure a model’s ability to navigate and process language nuances2.
+- Synthetic Benchmarks: Developers, researchers, and enterprise adopters increasingly rely on synthetic benchmarks and other evaluation tools to measure a model’s ability to navigate and process language nuances2.
 
-Perplexity, BLEU score, and Human Evaluations: These are some of the metrics that can measure and compare LLM performance3.
+- Perplexity, BLEU score, and Human Evaluations: These are some of the metrics that can measure and compare LLM performance3.
 
 Assessment:
 One of the best frameworks to work on the evaluation and continuous improvement of LLMs and the techniques applied to them in relation to results (MLOps) is DeepEval.
