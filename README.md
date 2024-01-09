@@ -160,9 +160,3 @@ https://medium.com/towards-artificial-intelligence/advanced-rag-techniques-an-il
 
 - Use low level classes. In this project, with the idea of meeting the basic expectations, we have used high-level classes from the popular "Langchain" library, but there are many others, such as llama_index, and many other ways to achieve our purposes with much more control of the prompting and the pipelines. I would use DAGs and classes to materialize the pipelines and have better control of the processes, I would improve the login, I would implement middlewares, sentry, CORs, and a long etc...
 
-- I would have divided the API into different routes and entrypoints, but it was easier for me to climb on the same entrypoint, perhaps I regretted it a little.
-
-
-
-
-

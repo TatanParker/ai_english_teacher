@@ -87,7 +87,7 @@ class TeacherService(RagService, ChainService):
         match style_type:
             case StyleTypes.FREE:
                 template = self.inject_context(
-                    context="Let yourself get inspired by the randomness of the AI.",
+                    context="Random style provided by the AI.",
                     template=tmp.style_template,
                 )
             case StyleTypes.CONCRETE:
