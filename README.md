@@ -145,6 +145,24 @@ If want to debug, just go individually to either backend/ and frontend/ dirs and
 make start
 ```
 
+## TODO
+
+What would I have liked to add to this fantastic project but haven't been able to?
+
+What would I have liked to add to this fantastic project but haven't been able to?
+
+- Of course, add unit tests (pytest) and load/integration tests (httpx or locust) to the backend and acceptance tests (playwright or selenium) to the full stack project. **If I had more time I would implement wonders**, and of course full coverage (python coverage)
+
+- Performance metrics and evaluation, as I mentioned before. There is much that can be done and is not conceivable in a project for the sake of production
+
+- Improve and expand RAG services, to implement more and different vectorization techniques and our RAG strategies (read this fantastic article:)
+https://medium.com/towards-artificial-intelligence/advanced-rag-techniques-an-illustrated-overview-04d193d8fec6
+
+- Use low level classes. In this project, with the idea of meeting the basic expectations, we have used high-level classes from the popular "Langchain" library, but there are many others, such as llama_index, and many other ways to achieve our purposes with much more control of the prompting and the pipelines. I would use DAGs and classes to materialize the pipelines and have better control of the processes, I would improve the login, I would implement middlewares, sentry, CORs, and a long etc...
+
+- I would have divided the API into different routes and entrypoints, but it was easier for me to climb on the same entrypoint, perhaps I regretted it a little.
+
+
 
 
 
