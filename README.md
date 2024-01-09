@@ -121,3 +121,30 @@ def test_case():
 ```
 - **Automatic evaluation**. How to improve and evaluate the outputs of our LLMs? Well, using our LLMs, establishing rules for random sampling of outputs and evaluating based on rules established by the supervisors.
 - **Offline evaluation** Since it is human language, personal evaluation of different samples is also important.
+
+## Best Practices:
+- Strong typing
+- Data evaluation
+- TDD (Test Driven Development)
+- Atomization and modularization
+- OOP
+- Microservices
+- Scalability
+
+
+## Installation and set up
+Ensure you have OPENAI_API_KEY as environment variable set
+
+```
+make docker-up
+```
+
+If want to debug, just go individually to either backend/ and frontend/ dirs and 
+
+```
+make start
+```
+
+
+
+
