@@ -78,7 +78,6 @@ if (
         summarization_type == SummarizationTypes.WEBPAGE
         or summarization_type == SummarizationTypes.DOCUMENT
     )
-    or (st.session_state.get("webpage") or st.session_state.get("document"))
 ):
     if st.button("Prompt"):
         send_request(
