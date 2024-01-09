@@ -92,7 +92,7 @@ class RagService:
             try:
                 _ = PdfReader(io.BytesIO(text))
                 return list(cls.pdf_parser.parse(Blob.from_data(text)))
-            except UnicodeError:
+            except Exception:
                 return cls.text_splitter.create_documents(
                     [text if isinstance(text, str) else text.decode("utf-8")]
                 )
