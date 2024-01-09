@@ -2,7 +2,7 @@ import asyncio
 from typing import AsyncIterable
 
 from langchain.chains.base import Chain
-from langchain.chains import LLMChain, SimpleSequentialChain
+from langchain.chains import LLMChain
 from langchain.llms import OpenAI
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain_core.language_models.llms import BaseLLM
@@ -65,7 +65,7 @@ class ChainService:
         llm: BaseLLM,
         prompt: BasePromptTemplate,
         output_parser: BaseOutputParser = StrOutputParser,
-        chain: bool = False,
+        chain: bool = True,
     ) -> Runnable | LLMChain:
         """
         Creates a chain based on provided llm.
@@ -90,19 +90,34 @@ class ChainService:
         input: str,
         chain: Chain,
         callback: AsyncIteratorCallbackHandler,
-        config: any
+        config: any,
+        context_variable_name: str = "input",
+        multiple: bool = False,
     ) -> AsyncIterable[str]:
+        """
+        Streams the chain.
+
+        Args:
+            input: The input text or docs.
+            chain: The chain object.
+            callback: The callback handler.
+            config: The runnable config.
+            context_variable_name: The context variable name.
+            multiple: Whether to stream multiple inputs.
+        """
+        input_kwarg = {context_variable_name: input}
         task = asyncio.create_task(
-            chain.arun(input=input, config=config)
+            chain.arun(**input_kwarg, config=config)
         )
 
-        async def stream_runner(input: str, chunk_size=25):
-            text = await chain.arun({"input": input})
+        async def stream_runner(chunk_size=25):
+            text = await chain.arun(input_kwarg)
             for i in range(0, len(text), chunk_size):
-                yield text[i:i + chunk_size]
-                await asyncio.sleep(0.1)
+                if chunk := text[i:i + chunk_size]:
+                    yield chunk
+                await asyncio.sleep(0.05)
         try:
-            iterator = stream_runner(input) if isinstance(chain, SimpleSequentialChain) else callback.aiter()
+            iterator = stream_runner() if multiple else callback.aiter()
             async for token in iterator:
                 yield token
         finally:

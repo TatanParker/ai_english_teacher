@@ -28,3 +28,9 @@ class SummarizationTypes(StrEnum):
     BASIC = "Basic"
     WEBPAGE = "From a webpage"
     DOCUMENT = "From a document"
+
+
+class SummarizationChainTypes(StrEnum):
+    STUFF = "stuff"
+    MAP_REDUCE = "map_reduce"
+    REFINE = "refine"

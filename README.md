@@ -1,5 +1,3 @@
-# English AI Teacher
-
-![img.png](img.png)
+# AI Services Template
 
 :clock:

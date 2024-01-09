@@ -3,7 +3,8 @@ import os
 import streamlit as st
 import requests
 
-from enums import OpenAIModels, TeacherActions
+from enums import OpenAIModels, TeacherActions, StyleTypes, SummarizationTypes
+from samples import TEXT_SAMPLE
 from sections.style import generate_style_section
 from sections.summarization import generate_summarization_section
 
@@ -14,6 +15,8 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api/stream")
 def send_request(text, model, action, summarization_type, style_type, style_context):
     result_container = st.empty()
     buffer = ""
+    files = {"file": st.session_state.get("document")} if st.session_state.get("document") else None
+    style_rules = st.session_state.get("style_rules") or ["no rules"]
     res = requests.post(
         BACKEND_URL,
         params={
@@ -23,10 +26,10 @@ def send_request(text, model, action, summarization_type, style_type, style_cont
             "summarization_type": summarization_type,
             "style_type": style_type,
             "style_context": style_context,
-            "style_rules": [""],
+            "style_rules": style_rules,
             "webpage": st.session_state.get("webpage"),
         },
-        files={"file": st.session_state.get("document")},
+        files=files,
         stream=True,
     )
     result_container.markdown("Here you have my corrections:")
@@ -67,10 +70,14 @@ if action == TeacherActions.SUMMARIZATION:
 
 st.markdown("""---""")
 
-if action == TeacherActions.SUMMARIZATION and st.session_state.get("webpage") or st.session_state.get("document"):
+if (
+        action == TeacherActions.SUMMARIZATION and
+        (summarization_type == SummarizationTypes.WEBPAGE or summarization_type == SummarizationTypes.DOCUMENT) or
+        (st.session_state.get("webpage") or st.session_state.get("document"))
+):
     if st.button("Prompt"):
         send_request(
-            text="summary",
+            text="",
             model=model,
             action=action,
             summarization_type=summarization_type,
@@ -80,9 +87,11 @@ if action == TeacherActions.SUMMARIZATION and st.session_state.get("webpage") or
 
 else:
     text = st.text_area(
-        f"Please write the text to perform {action.value.lower()}", value="This are a rally bad text wrote in anglish"
+        f"Please write the text to perform {action.value.lower()}", value=TEXT_SAMPLE.strip()
     )
     if st.button("Prompt"):
+        if action == TeacherActions.STYLE and (style_type == StyleTypes.WEBPAGE or style_type == StyleTypes.DOCUMENT):
+            st.toast("This action will take few seconds... be patient!!!", icon="⌛")
         send_request(
             text=text,
             model=model,

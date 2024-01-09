@@ -1,7 +1,3 @@
-import asyncio
-from collections.abc import AsyncIterable
-from queue import Queue
-
 from fastapi import Depends, Query, UploadFile, File
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -27,8 +23,8 @@ async def stream(
     text: str,
     model: OpenAIModels = OpenAIModels.GPT3,
     action: TeacherActions = TeacherActions.GRAMMAR,
-    style_type: StyleTypes = StyleTypes.FREE,
     summarization_type: SummarizationTypes = SummarizationTypes.DEFAULT,
+    style_type: StyleTypes = StyleTypes.FREE,
     style_context: str | None = None,
     style_rules: list[str | None] = Query(default="The first rule of the fight club ..."),
     webpage: AnyHttpUrl | None = Query(None),
@@ -46,6 +42,8 @@ async def stream(
         StreamingResponse: The streaming response.
     """
     # Variables
+    context_variable_name, multiple = "input", False
+    file = (await file.read()).decode("utf-8") if file else None
     run_collector = RunCollectorCallbackHandler()
     runnable_config = RunnableConfig(callbacks=[run_collector])
     run_collector.traced_runs = []
@@ -69,19 +67,32 @@ async def stream(
                 style_type=style_type,
                 style_context=style_context,
                 style_rules=style_rules,
+                style_webpage=webpage,
+                style_file=file,
             )
+            multiple = True
         case TeacherActions.SUMMARIZATION:
             chain = service.create_summarization_chain(
                 llm_params=llm_params,
                 summarization_type=summarization_type,
-                chain=True,
+                summarization_webpage=webpage,
+                summarization_file=file,
             )
+            if summarization_type == SummarizationTypes.WEBPAGE and webpage:
+                text = service.document_loader(urls=[str(webpage)])
+                context_variable_name = "input_documents"
+            elif summarization_type == SummarizationTypes.DOCUMENT and file:
+                text = service.document_loader(text=file)
+                context_variable_name = "input_documents"
+                multiple = True
 
     _stream = service.stream(
         input=text,
         chain=chain,
         callback=callback,
         config=runnable_config,
+        context_variable_name=context_variable_name,
+        multiple=multiple,
     )
 
     return StreamingResponse(_stream, media_type="text/event-stream")

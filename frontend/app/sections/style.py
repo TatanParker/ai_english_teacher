@@ -1,6 +1,7 @@
 import streamlit as st
 
 from enums import StyleTypes
+from samples import WEBPAGE_STYLE_SAMPLE
 
 
 def generate_style_section() -> tuple[str, str | None]:
@@ -18,10 +19,11 @@ def generate_style_section() -> tuple[str, str | None]:
         elif style_type == StyleTypes.CONCRETE:
             style_context = st.text_input(
                 "Please type your desired style in one word or short sentence",
-                placeholder="e.g. formal, informal, friendly, etc.",
+                value="Formal and intense",
             )
         elif style_type == StyleTypes.RULES:
             st.caption("I.e. Use a lot of icons!!!")
+
             def add_rule():
                 st.session_state.style_rules_size += 1
 
@@ -39,14 +41,18 @@ def generate_style_section() -> tuple[str, str | None]:
             for i in range(st.session_state.style_rules_size):
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.session_state.style_rules.append(st.text_input(f"Rule {i}", key=f"text{i}"))
-
+                    if text := st.text_input(f"Rule {i}", key=f"text{i}"):
+                        st.session_state.style_rules.append(text)
+                        st.session_state.style_rules = list(set(st.session_state.style_rules))
                 with c2:
                     st.session_state.style_rules_del.append(st.button("❌", key=f"delete{i}", on_click=delete_rule, args=(i,)))
 
             st.button("➕ Add Rule", on_click=add_rule)
         elif style_type == StyleTypes.WEBPAGE:
-            url = st.text_input("Please type the url of the webpage you want to use as a reference")
+            url = st.text_input(
+                "Please type the url of the webpage you want to use as a reference",
+                value=WEBPAGE_STYLE_SAMPLE,
+            )
             st.session_state.webpage = url
         elif style_type == StyleTypes.DOCUMENT:
             doc = st.file_uploader("Upload your style document", type=["pdf", "docx", "txt", "odt"])

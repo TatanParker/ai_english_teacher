@@ -4,6 +4,8 @@ from typing import Literal
 from pydantic import AnyHttpUrl
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import WebBaseLoader, PyPDFLoader
+from langchain_community.document_loaders.blob_loaders import Blob
+from langchain.document_loaders.parsers import PyPDFParser
 from langchain_core.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.llms.base import BaseLLM
@@ -15,21 +17,53 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import numpy as np
 
+from app.core.enums import SummarizationChainTypes
 from app.core.settings import settings
-from app.core.prompts_templates import summarization_map_template, summarization_combine_template, summarization_refine_template
+import app.core.prompts_templates as tmp
 
 
 class RagService:
+    """Class for Retrieval Augmented Generation services."""
 
+    pdf_parser: PyPDFParser = PyPDFParser()
     text_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500
+    )
+    text_large_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", "\t"],
         chunk_size=10000,
         chunk_overlap=3000
     )
 
     @staticmethod
+    def inject_context(context: str, template: str) -> str:
+        """
+        Injects the context into the template manually.
+
+        Args:
+            context: The context to be injected.
+            template: The template to be injected into.
+
+        Returns:
+            str: The injected template.
+        """
+        assert context, "Context must be provided"
+        return template.replace("{context}", context)
+
+    @staticmethod
     def num_tokens(text: str | list[Document]) -> int:
-        return OpenAI.get_num_tokens(text)
+        """
+        Returns the number of tokens in the text.
+
+        Args:
+            text: The text to be counted.
+
+        Returns:
+            int: The number of tokens.
+        """
+        if isinstance(text, list):
+            return sum([len(x.page_content.split()) for x in text])
+        return OpenAI().get_num_tokens(text)
 
     @classmethod
     def document_loader(
@@ -39,7 +73,21 @@ class RagService:
         file_path: str | None = None,
         pdf_path: str | None = None,
     ) -> list[Document | None]:
+        """
+        Loads the documents from the given text, urls, file_path or pdf_path.
+
+        Args:
+            text: The text to be loaded.
+            urls: The urls to be loaded.
+            file_path: The file path to be loaded.
+            pdf_path: The pdf path to be loaded.
+
+        Returns:
+            list[Document | None]: The loaded documents.
+        """
         if text:
+            if isinstance(text, str) and "PDF" in text:
+                return list(cls.pdf_parser.parse(Blob.from_data(text)))
             return cls.text_splitter.create_documents([
                 text if isinstance(text, str) else text.decode()
             ])
@@ -59,9 +107,23 @@ class RagService:
 
     @staticmethod
     def optimal_clusters(vectors: list[list[float]], max_clusters: int = 12) -> tuple[int, float]:
+        """
+        Returns the optimal number of clusters based on the silhouette score.
+
+        Args:
+            vectors: The vectors to be clustered.
+            max_clusters: The maximum number of clusters.
+
+        Returns:
+            tuple[int, float]: The optimal number of clusters and the silhouette score.
+        """
+        if len(vectors) < 2:
+            raise ValueError("The number of vectors should be at least 2 for clustering.")
+
         best_score = -1
         best_k = 0
-        for k in range(2, max_clusters + 1):
+
+        for k in range(2, min(len(vectors), max_clusters) + 1):
             kmeans = KMeans(n_clusters=k, init='k-means++', max_iter=300, n_init=10, random_state=0)
             preds = kmeans.fit_predict(vectors)
             score = silhouette_score(vectors, preds)
@@ -72,6 +134,17 @@ class RagService:
 
     @staticmethod
     def closest_index(kmeans: object, n_clusters: int, vectors: list[list[float]]) -> list[int]:
+        """
+        Returns the closest index to the cluster center.
+
+        Args:
+            kmeans: The kmeans object.
+            n_clusters: The number of clusters.
+            vectors: The vectors to be clustered.
+
+        Returns:
+            list[int]: The closest indices.
+        """
         closest_indices = []
         for i in range(n_clusters):
             distances = np.linalg.norm(vectors - kmeans.cluster_centers_[i], axis=1)
@@ -85,47 +158,69 @@ class RagService:
         cls,
         documents: list[Document],
         embed_model: Literal["openai", "faiss", "chroma"] = "openai",
-        predict_clusters: bool = False
+        predict_clusters: bool = True
     ):
+        """
+        Vectorizes the documents using the given embed_model.
+
+        Args:
+            documents: The documents to be vectorized.
+            embed_model: The embed model to be used.
+            predict_clusters: Whether to predict the number of clusters.
+
+        Returns:
+            list[list[float]]: The vectors.
+        """
         vectors = []
         match embed_model:
             case "openai":
                 embed = embeddings.OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
                 vectors = embed.embed_documents([x.page_content for x in documents])
+
         n_clusters = cls.optimal_clusters(vectors)[0] if predict_clusters else 10
         kmeans = KMeans(n_clusters=n_clusters, random_state=42).fit(vectors)
         selected_indices = cls.closest_index(kmeans, n_clusters, vectors)
         return [documents[i] for i in selected_indices]
 
     @staticmethod
-    def create_summary_chain(
+    def create_rag_summarization_chain(
         llm: BaseLLM,
-        chain_type: Literal["stuff", "map_reduce", "refine"] = "map_reduce",
+        chain_type: SummarizationChainTypes = SummarizationChainTypes.STUFF,
         context_variable_name: str = "input",
+        summarization_map_template: str = tmp.summarization_map_template,
+        summarization_combine_template: str = tmp.summarization_combine_template,
+        **kwargs: any,
     ) -> Chain:
+        """
+        Creates a summarization chain.
+
+        Args:
+            llm: The instantiated LLM model.
+            chain_type: The chain type.
+            context_variable_name: The context variable name.
+
+        Returns:
+            Chain: The summarization chain.
+        """
         match chain_type:
-            case "stuff":
-                return load_summarize_chain(llm=llm, chain_type=chain_type)
-            case "map_reduce":
-                map_prompt_template = PromptTemplate(
-                    template=summarization_map_template,
-                    input_variables=[context_variable_name]
-                )
-                combine_prompt_template = PromptTemplate(
-                    template=summarization_combine_template,
-                    input_variables=[context_variable_name]
-                )
+            case SummarizationChainTypes.STUFF:
+                return load_summarize_chain(llm=llm, chain_type=str(chain_type), **kwargs)
+            case SummarizationChainTypes.MAP_REDUCE:
+                map_prompt_template = PromptTemplate.from_template(summarization_map_template)
+                combine_prompt_template = PromptTemplate.from_template(summarization_combine_template)
                 return load_summarize_chain(
                     llm=llm,
-                    chain_type=chain_type,
+                    chain_type=str(chain_type),
                     map_prompt=map_prompt_template,
                     combine_prompt=combine_prompt_template,
+                    combine_document_variable_name=context_variable_name,
+                    map_reduce_document_variable_name=context_variable_name,
                 )
-            case "refine":
+            case SummarizationChainTypes.REFINE:
                 return load_summarize_chain(
                     llm=llm,
-                    chain_type=chain_type,
-                    refine_prompt=PromptTemplate.from_template(summarization_refine_template)
+                    chain_type=str(chain_type),
+                    refine_prompt=PromptTemplate.from_template(tmp.summarization_refine_template)
                 )
 
     @classmethod
@@ -133,12 +228,11 @@ class RagService:
         cls,
         docs: list[Document],
         llm: BaseLLM,
-        chain_type: Literal["stuff", "map_reduce", "refine"] = "stuff",
-        vectorize: bool = True
+        chain_type: SummarizationChainTypes = SummarizationChainTypes.STUFF,
+        vectorize: bool = False,
+        **kwargs: any,
     ):
         if vectorize:
             docs = cls.vectorizer(docs)
-        chain = cls.create_summary_chain(llm=llm, chain_type=chain_type)
-        return chain.summarize(docs)
-
-
+        chain = cls.create_rag_summarization_chain(llm=llm, chain_type=chain_type, **kwargs)
+        return chain.run(docs)

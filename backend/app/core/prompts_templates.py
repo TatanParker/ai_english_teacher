@@ -2,7 +2,8 @@
 
 grammar_template = """
     Correct just the grammatical errors of “Text:” in standard English and place the result as the answer.
-    Please, I want the given text back as similar as possible to the original text, but perfectly written in standard English.:
+    Please, I want the given text back as similar as possible to the original text, but perfectly written 
+    in standard English.:
      Text: {input}
 """
 
@@ -13,18 +14,38 @@ style_template = """
      Style: {context}
 """
 
-summarization_template_default = """
+style_webpage_template = """
+    Summarize the grammar and expression style of the following author's webpage content:
+    {input}
+"""
+
+style_document_template = """
+    Summarize the grammar and expression style of the following author's document content:
+    {input}
+"""
+
+summarization_default_template = """
     Please provide a summary of the following text
     
     TEXT:
     {input}
 """
 
-summarization_template_basic = """
+summarization_basic_template = """
     Please provide a summary of the following text.
     Please provide your output in a manner that a 5 year old would understand
     
     TEXT:
+    {input}
+"""
+
+summarization_webpage_template = """
+    Summarize the content of the following author's webpage article:
+    {input}
+"""
+
+summarization_document_template = """
+    Summarize the content of the following author's document in a single paragraph:
     {input}
 """
 
