@@ -19,7 +19,7 @@ class ChainService:
     def create_llm(
         stream: bool = False,
         callbacks: list[BaseCallbackHandler] | None = None,
-        **parameters
+        **parameters,
     ) -> BaseLLM:
         """
         Creates an instance of the LLM.
@@ -106,16 +106,15 @@ class ChainService:
             multiple: Whether to stream multiple inputs.
         """
         input_kwarg = {context_variable_name: input}
-        task = asyncio.create_task(
-            chain.arun(**input_kwarg, config=config)
-        )
+        task = asyncio.create_task(chain.arun(**input_kwarg, config=config))
 
         async def stream_runner(chunk_size=25):
             text = await chain.arun(input_kwarg)
             for i in range(0, len(text), chunk_size):
-                if chunk := text[i:i + chunk_size]:
+                if chunk := text[i : i + chunk_size]:
                     yield chunk
                 await asyncio.sleep(0.05)
+
         try:
             iterator = stream_runner() if multiple else callback.aiter()
             async for token in iterator:

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     @model_validator(mode="before")
     def validate_project_settings(cls, values: dict[str, any]) -> any:
         """Validate project settings."""
-        with open('pyproject.toml', 'r') as file:
+        with open("pyproject.toml", "r") as file:
             project = toml.load(file)
         poetry = project["tool"]["poetry"]
         values["PROJECT_NAME"] = values.get("PROJECT_NAME", poetry["name"])

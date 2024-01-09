@@ -26,7 +26,9 @@ async def stream(
     summarization_type: SummarizationTypes = SummarizationTypes.DEFAULT,
     style_type: StyleTypes = StyleTypes.FREE,
     style_context: str | None = None,
-    style_rules: list[str | None] = Query(default="The first rule of the fight club ..."),
+    style_rules: list[str | None] = Query(
+        default="The first rule of the fight club ..."
+    ),
     webpage: AnyHttpUrl | None = Query(None),
     file: UploadFile | None = File(None),
     bus: Bus = Depends(get_bus),
@@ -51,7 +53,7 @@ async def stream(
     """
     # Variables
     context_variable_name, multiple = "input", False
-    file = (await file.read()).decode("utf-8") if file else None
+    file = await file.read() if file else None
     run_collector = RunCollectorCallbackHandler()
     runnable_config = RunnableConfig(callbacks=[run_collector])
     run_collector.traced_runs = []
@@ -61,11 +63,13 @@ async def stream(
     chain = object()
     callback = AsyncIteratorCallbackHandler()
     llm_params = bus.parameters.get("llm_params", {})
-    llm_params.update({
-        "model": model,
-        "stream": True,
-        "callbacks": [callback],
-    })
+    llm_params.update(
+        {
+            "model": model,
+            "stream": True,
+            "callbacks": [callback],
+        }
+    )
     match action:
         case TeacherActions.GRAMMAR:
             chain = service.create_grammar_chain(llm_params=llm_params, chain=True)
@@ -87,10 +91,10 @@ async def stream(
                 summarization_file=file,
             )
             if summarization_type == SummarizationTypes.WEBPAGE and webpage:
-                text = service.document_loader(urls=[str(webpage)])
+                text = service.session_docs
                 context_variable_name = "input_documents"
             elif summarization_type == SummarizationTypes.DOCUMENT and file:
-                text = service.document_loader(text=file)
+                text = service.session_docs
                 context_variable_name = "input_documents"
                 multiple = True
 

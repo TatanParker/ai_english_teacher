@@ -1,5 +1,3 @@
-
-
 grammar_template = """
     Correct just the grammatical errors of “Text:” in standard English and place the result as the answer.
     Please, I want the given text back as similar as possible to the original text, but perfectly written 
@@ -26,7 +24,7 @@ style_document_template = """
 
 summarization_default_template = """
     Please provide a summary of the following text
-    
+
     TEXT:
     {input}
 """
@@ -34,7 +32,7 @@ summarization_default_template = """
 summarization_basic_template = """
     Please provide a summary of the following text.
     Please provide your output in a manner that a 5 year old would understand
-    
+
     TEXT:
     {input}
 """
@@ -54,9 +52,18 @@ summarization_template_advanced = """
     This section will be enclosed in triple backticks (```).
     Your goal is to give a summary of this section so that a reader will have a full understanding of what happened.
     Your response should be at least three paragraphs and fully encompass what was said in the passage.
-    
+
     ```{input}```
     FULL SUMMARY:
+"""
+
+summarization_large_combine_prompt = """
+You will be given a series of summaries from a book or large essay. The summaries will be enclosed in triple backticks (```)
+Your goal is to give a verbose summary of what happened in the story.
+The reader should be able to grasp what happened in the book / essay.
+
+```{input}```
+VERBOSE SUMMARY:
 """
 
 summarization_map_template = """

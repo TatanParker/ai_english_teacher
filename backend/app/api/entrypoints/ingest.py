@@ -45,11 +45,13 @@ async def grammar(
     service = TeacherService()
     callback = AsyncIteratorCallbackHandler()
     llm_params = bus.parameters.get("llm_params", {})
-    llm_params.update({
-        "model": model,
-        "stream": True,
-        "callbacks": [callback],
-    })
+    llm_params.update(
+        {
+            "model": model,
+            "stream": True,
+            "callbacks": [callback],
+        }
+    )
     chain = service.create_grammar_chain(llm_params=llm_params, chain=True)
     _stream = service.stream(
         input=text,
@@ -69,7 +71,9 @@ async def style(
     model: OpenAIModels = OpenAIModels.GPT3,
     style_type: StyleTypes = StyleTypes.FREE,
     style_context: str | None = None,
-    style_rules: list[str | None] = Query(default="The first rule of the fight club ..."),
+    style_rules: list[str | None] = Query(
+        default="The first rule of the fight club ..."
+    ),
     webpage: AnyHttpUrl | None = Query(None),
     file: UploadFile | None = File(None),
     bus: Bus = Depends(get_bus),
@@ -101,7 +105,11 @@ async def style(
     service = TeacherService()
     callback = AsyncIteratorCallbackHandler()
     llm_params = bus.parameters.get("llm_params", {})
-    llm_params.update({"model": model,})
+    llm_params.update(
+        {
+            "model": model,
+        }
+    )
     chain = service.create_style_chain(
         llm_params=llm_params,
         style_type=style_type,
@@ -157,7 +165,11 @@ async def summarization(
     service = TeacherService()
     callback = AsyncIteratorCallbackHandler()
     llm_params = bus.parameters.get("llm_params", {})
-    llm_params.update({"model": model,})
+    llm_params.update(
+        {
+            "model": model,
+        }
+    )
     chain = service.create_summarization_chain(
         llm_params=llm_params,
         summarization_type=summarization_type,
@@ -165,10 +177,10 @@ async def summarization(
         summarization_file=file,
     )
     if summarization_type == SummarizationTypes.WEBPAGE and webpage:
-        text = service.document_loader(urls=[str(webpage)])
+        text = service.session_docs
         context_variable_name = "input_documents"
     elif summarization_type == SummarizationTypes.DOCUMENT and file:
-        text = service.document_loader(text=file)
+        text = service.session_docs
         context_variable_name = "input_documents"
         multiple = True
 

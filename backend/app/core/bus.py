@@ -12,7 +12,10 @@ def handler(func: Callable[[any], any]) -> Callable[[any], any]:
     def wrapper(*args: any, **kwargs: any) -> any:
         try:
             return func(*args, **kwargs)
-        except (KeyError, StopIteration, ):
+        except (
+            KeyError,
+            StopIteration,
+        ):
             attr = func.__name__.replace("get_", "").capitalize()
             entity = args[1]
             logger.warning(f"{attr} {entity} not found")
@@ -59,7 +62,9 @@ class Bus:
         await asyncio.gather(*(adapter.init() for adapter in self.adapters))
 
     async def healthcheck(self) -> bool:
-        return all(await asyncio.gather(*(adapter.healthcheck() for adapter in self.adapters)))
+        return all(
+            await asyncio.gather(*(adapter.healthcheck() for adapter in self.adapters))
+        )
 
     async def close(self) -> None:
         await asyncio.gather(*(adapter.close() for adapter in self.adapters))
@@ -67,7 +72,9 @@ class Bus:
     def register_adapter(self, adapter: Adapter | list[Adapter]) -> None:
         self.adapters.extend(adapter if isinstance(adapter, list) else [adapter])
 
-    def register_parameters(self, parameters: dict[str, any], source: any = None) -> None:
+    def register_parameters(
+        self, parameters: dict[str, any], source: any = None
+    ) -> None:
         source = {k.lower(): v for k, v in dict(source or os.environ).items()}
         parameters = {
             name: param.model_validate(source).model_dump(mode="json")
@@ -75,7 +82,10 @@ class Bus:
         }
         self.parameters.update(parameters)
 
-    def register_background_tasks(self, background_tasks: dict[str, BackgroundTasks],) -> None:
+    def register_background_tasks(
+        self,
+        background_tasks: dict[str, BackgroundTasks],
+    ) -> None:
         self.background_tasks.update(background_tasks)
 
     @handler
@@ -92,4 +102,3 @@ class Bus:
 
 
 BUS = Bus()
-

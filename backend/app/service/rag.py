@@ -1,6 +1,8 @@
 import pathlib
 from typing import Literal
+import io
 
+from pypdf import PdfReader
 from pydantic import AnyHttpUrl
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import WebBaseLoader, PyPDFLoader
@@ -29,11 +31,12 @@ class RagService:
     text_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500
     )
-    text_large_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", "\t"],
-        chunk_size=10000,
-        chunk_overlap=3000
+    text_large_splitter: RecursiveCharacterTextSplitter = (
+        RecursiveCharacterTextSplitter(
+            separators=["\n\n", "\n", "\t"], chunk_size=10000, chunk_overlap=3000
+        )
     )
+    session_docs: list[Document | None] = []
 
     @staticmethod
     def inject_context(context: str, template: str) -> str:
@@ -86,11 +89,13 @@ class RagService:
             list[Document | None]: The loaded documents.
         """
         if text:
-            if isinstance(text, str) and "PDF" in text:
+            try:
+                _ = PdfReader(io.BytesIO(text))
                 return list(cls.pdf_parser.parse(Blob.from_data(text)))
-            return cls.text_splitter.create_documents([
-                text if isinstance(text, str) else text.decode()
-            ])
+            except UnicodeError:
+                return cls.text_splitter.create_documents(
+                    [text if isinstance(text, str) else text.decode("utf-8")]
+                )
         elif urls:
             loader = WebBaseLoader(web_path=urls)
             return loader.load()
@@ -106,7 +111,9 @@ class RagService:
         return []
 
     @staticmethod
-    def optimal_clusters(vectors: list[list[float]], max_clusters: int = 12) -> tuple[int, float]:
+    def optimal_clusters(
+        vectors: list[list[float]], max_clusters: int = 12
+    ) -> tuple[int, float]:
         """
         Returns the optimal number of clusters based on the silhouette score.
 
@@ -118,13 +125,17 @@ class RagService:
             tuple[int, float]: The optimal number of clusters and the silhouette score.
         """
         if len(vectors) < 2:
-            raise ValueError("The number of vectors should be at least 2 for clustering.")
+            raise ValueError(
+                "The number of vectors should be at least 2 for clustering."
+            )
 
         best_score = -1
         best_k = 0
 
         for k in range(2, min(len(vectors), max_clusters) + 1):
-            kmeans = KMeans(n_clusters=k, init='k-means++', max_iter=300, n_init=10, random_state=0)
+            kmeans = KMeans(
+                n_clusters=k, init="k-means++", max_iter=300, n_init=10, random_state=0
+            )
             preds = kmeans.fit_predict(vectors)
             score = silhouette_score(vectors, preds)
             if score > best_score:
@@ -133,7 +144,9 @@ class RagService:
         return best_k, best_score
 
     @staticmethod
-    def closest_index(kmeans: object, n_clusters: int, vectors: list[list[float]]) -> list[int]:
+    def closest_index(
+        kmeans: object, n_clusters: int, vectors: list[list[float]]
+    ) -> list[int]:
         """
         Returns the closest index to the cluster center.
 
@@ -158,7 +171,7 @@ class RagService:
         cls,
         documents: list[Document],
         embed_model: Literal["openai", "faiss", "chroma"] = "openai",
-        predict_clusters: bool = True
+        predict_clusters: bool = True,
     ):
         """
         Vectorizes the documents using the given embed_model.
@@ -174,7 +187,9 @@ class RagService:
         vectors = []
         match embed_model:
             case "openai":
-                embed = embeddings.OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+                embed = embeddings.OpenAIEmbeddings(
+                    openai_api_key=settings.OPENAI_API_KEY
+                )
                 vectors = embed.embed_documents([x.page_content for x in documents])
 
         n_clusters = cls.optimal_clusters(vectors)[0] if predict_clusters else 10
@@ -204,10 +219,16 @@ class RagService:
         """
         match chain_type:
             case SummarizationChainTypes.STUFF:
-                return load_summarize_chain(llm=llm, chain_type=str(chain_type), **kwargs)
+                return load_summarize_chain(
+                    llm=llm, chain_type=str(chain_type), **kwargs
+                )
             case SummarizationChainTypes.MAP_REDUCE:
-                map_prompt_template = PromptTemplate.from_template(summarization_map_template)
-                combine_prompt_template = PromptTemplate.from_template(summarization_combine_template)
+                map_prompt_template = PromptTemplate.from_template(
+                    summarization_map_template
+                )
+                combine_prompt_template = PromptTemplate.from_template(
+                    summarization_combine_template
+                )
                 return load_summarize_chain(
                     llm=llm,
                     chain_type=str(chain_type),
@@ -220,7 +241,9 @@ class RagService:
                 return load_summarize_chain(
                     llm=llm,
                     chain_type=str(chain_type),
-                    refine_prompt=PromptTemplate.from_template(tmp.summarization_refine_template)
+                    refine_prompt=PromptTemplate.from_template(
+                        tmp.summarization_refine_template
+                    ),
                 )
 
     @classmethod
@@ -234,5 +257,7 @@ class RagService:
     ):
         if vectorize:
             docs = cls.vectorizer(docs)
-        chain = cls.create_rag_summarization_chain(llm=llm, chain_type=chain_type, **kwargs)
+        chain = cls.create_rag_summarization_chain(
+            llm=llm, chain_type=chain_type, **kwargs
+        )
         return chain.run(docs)

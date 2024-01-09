@@ -4,7 +4,6 @@ from app.core.enums import OpenAIModels
 
 
 class AbstractModel(BaseModel):
-
     model_config = dict(from_attributes=True)
 
 

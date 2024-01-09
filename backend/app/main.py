@@ -11,9 +11,7 @@ from app.core.schemas import LLMParams
 
 # Instantiate Bus and Register Adapters and Parameters (Dependency Injection)
 bus = BUS
-parameters = {
-    "llm_params": LLMParams
-}
+parameters = {"llm_params": LLMParams}
 bus.register_parameters(parameters, source=settings)
 
 
@@ -28,6 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     # Close bus
     await bus.close()
+
 
 # Initiate API
 

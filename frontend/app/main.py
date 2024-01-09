@@ -15,7 +15,11 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api/stream")
 def send_request(text, model, action, summarization_type, style_type, style_context):
     result_container = st.empty()
     buffer = ""
-    files = {"file": st.session_state.get("document")} if st.session_state.get("document") else None
+    files = (
+        {"file": st.session_state.get("document")}
+        if st.session_state.get("document")
+        else None
+    )
     style_rules = st.session_state.get("style_rules") or ["no rules"]
     res = requests.post(
         BACKEND_URL,
@@ -36,7 +40,6 @@ def send_request(text, model, action, summarization_type, style_type, style_cont
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         for chunk in res.iter_content(None, decode_unicode=True):
-
             if chunk:
                 buffer += str(chunk)
                 result_container.markdown(f"{buffer}")
@@ -51,13 +54,12 @@ st.subheader("Powered by Streamlit + FastAPI + LangChain + OpenAI")
 model = st.selectbox(
     "Select your favourite AI Teacher",
     options=[model for model in OpenAIModels],
-    index=len(OpenAIModels) - 1
+    index=len(OpenAIModels) - 1,
 )
 
 action = st.selectbox(
     "What do you want from your AI Teacher?",
     options=[action for action in TeacherActions],
-
 )
 
 if action == TeacherActions.STYLE:
@@ -71,9 +73,12 @@ if action == TeacherActions.SUMMARIZATION:
 st.markdown("""---""")
 
 if (
-        action == TeacherActions.SUMMARIZATION and
-        (summarization_type == SummarizationTypes.WEBPAGE or summarization_type == SummarizationTypes.DOCUMENT) or
-        (st.session_state.get("webpage") or st.session_state.get("document"))
+    action == TeacherActions.SUMMARIZATION
+    and (
+        summarization_type == SummarizationTypes.WEBPAGE
+        or summarization_type == SummarizationTypes.DOCUMENT
+    )
+    or (st.session_state.get("webpage") or st.session_state.get("document"))
 ):
     if st.button("Prompt"):
         send_request(
@@ -87,11 +92,24 @@ if (
 
 else:
     text = st.text_area(
-        f"Please write the text to perform {action.value.lower()}", value=TEXT_SAMPLE.strip()
+        f"Please write the text to perform {action.value.lower()}",
+        value=TEXT_SAMPLE.strip(),
     )
     if st.button("Prompt"):
-        if action == TeacherActions.STYLE and (style_type == StyleTypes.WEBPAGE or style_type == StyleTypes.DOCUMENT):
-            st.toast("This action will take few seconds... be patient!!!", icon="⌛")
+        if (
+            action == TeacherActions.STYLE
+            and (style_type == StyleTypes.WEBPAGE or style_type == StyleTypes.DOCUMENT)
+        ) or (
+            action == TeacherActions.SUMMARIZATION
+            and (
+                summarization_type == SummarizationTypes.WEBPAGE
+                or summarization_type == SummarizationTypes.DOCUMENT
+            )
+        ):
+            st.toast(
+                "This action will take few seconds... Or a minute if you gave me a book!! be patient!!!",
+                icon="⌛",
+            )
         send_request(
             text=text,
             model=model,

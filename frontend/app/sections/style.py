@@ -43,9 +43,15 @@ def generate_style_section() -> tuple[str, str | None]:
                 with c1:
                     if text := st.text_input(f"Rule {i}", key=f"text{i}"):
                         st.session_state.style_rules.append(text)
-                        st.session_state.style_rules = list(set(st.session_state.style_rules))
+                        st.session_state.style_rules = list(
+                            set(st.session_state.style_rules)
+                        )
                 with c2:
-                    st.session_state.style_rules_del.append(st.button("❌", key=f"delete{i}", on_click=delete_rule, args=(i,)))
+                    st.session_state.style_rules_del.append(
+                        st.button(
+                            "❌", key=f"delete{i}", on_click=delete_rule, args=(i,)
+                        )
+                    )
 
             st.button("➕ Add Rule", on_click=add_rule)
         elif style_type == StyleTypes.WEBPAGE:
@@ -55,6 +61,8 @@ def generate_style_section() -> tuple[str, str | None]:
             )
             st.session_state.webpage = url
         elif style_type == StyleTypes.DOCUMENT:
-            doc = st.file_uploader("Upload your style document", type=["pdf", "docx", "txt", "odt"])
+            doc = st.file_uploader(
+                "Upload your style document", type=["pdf", "docx", "txt", "odt"]
+            )
             st.session_state.document = doc
         return style_type, style_context

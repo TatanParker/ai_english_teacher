@@ -49,10 +49,7 @@ class TeacherService(RagService, ChainService):
             prompt_template=PromptTemplate,
         )
         chain = self.create_chain(
-            llm=llm,
-            prompt=prompt,
-            output_parser=StrOutputParser(),
-            chain=chain
+            llm=llm, prompt=prompt, output_parser=StrOutputParser(), chain=chain
         )
         return chain
 
@@ -87,7 +84,7 @@ class TeacherService(RagService, ChainService):
         match style_type:
             case StyleTypes.FREE:
                 template = self.inject_context(
-                    context="Random style provided by the AI.",
+                    context="Let yourself get inspired by the randomness of the AI.",
                     template=tmp.style_template,
                 )
             case StyleTypes.CONCRETE:
@@ -103,7 +100,9 @@ class TeacherService(RagService, ChainService):
             case StyleTypes.WEBPAGE:
                 assert style_webpage, "Webpage must be provided."
                 docs = self.document_loader(urls=[str(style_webpage)])
-                prompt = self.create_prompt_template(resources=tmp.style_webpage_template)
+                prompt = self.create_prompt_template(
+                    resources=tmp.style_webpage_template
+                )
                 tokens = self.num_tokens(str(style_webpage))
                 if 4400 < tokens < 10000:
                     chain_type = SummarizationChainTypes.MAP_REDUCE
@@ -123,8 +122,14 @@ class TeacherService(RagService, ChainService):
                 )
             case StyleTypes.DOCUMENT:
                 assert style_file, "File must be provided."
-                docs = self.document_loader(text=style_file if isinstance(style_file, str) else style_file.decode("utf-8"))
-                prompt = self.create_prompt_template(resources=tmp.style_document_template)
+                docs = self.document_loader(
+                    text=style_file
+                    if isinstance(style_file, str)
+                    else style_file.decode("utf-8")
+                )
+                prompt = self.create_prompt_template(
+                    resources=tmp.style_document_template
+                )
                 tokens = self.num_tokens(str(style_file))
                 if 4400 < tokens < 10000:
                     chain_type = SummarizationChainTypes.MAP_REDUCE
@@ -164,12 +169,13 @@ class TeacherService(RagService, ChainService):
         summarization_file: str | None = None,
     ) -> Chain:
         llm = self.create_llm(**llm_params)
-        vectorize = False
         chain_type = SummarizationChainTypes.STUFF
         match summarization_type:
             case SummarizationTypes.BASIC:
                 template = tmp.summarization_basic_template
-                prompt = self.create_prompt_template(resources=template,)
+                prompt = self.create_prompt_template(
+                    resources=template,
+                )
                 return self.create_chain(
                     llm=llm,
                     prompt=prompt,
@@ -177,7 +183,9 @@ class TeacherService(RagService, ChainService):
                 )
             case SummarizationTypes.DEFAULT:
                 template = tmp.summarization_default_template
-                prompt = self.create_prompt_template(resources=template,)
+                prompt = self.create_prompt_template(
+                    resources=template,
+                )
                 return self.create_chain(
                     llm=llm,
                     prompt=prompt,
@@ -186,10 +194,15 @@ class TeacherService(RagService, ChainService):
             case SummarizationTypes.WEBPAGE:
                 assert summarization_webpage, "Webpage must be provided."
                 tokens = self.num_tokens(str(summarization_webpage))
+                self.session_docs = self.document_loader(
+                    urls=[str(summarization_webpage)]
+                )
                 if 4400 < tokens < 10000:
                     chain_type = SummarizationChainTypes.MAP_REDUCE
                 template = tmp.summarization_webpage_template
-                prompt = self.create_prompt_template(resources=template,)
+                prompt = self.create_prompt_template(
+                    resources=template,
+                )
                 return self.create_rag_summarization_chain(
                     llm=llm,
                     chain_type=chain_type,
@@ -198,11 +211,18 @@ class TeacherService(RagService, ChainService):
                 )
             case SummarizationTypes.DOCUMENT:
                 assert summarization_file, "File must be provided."
-                tokens = self.num_tokens(str(summarization_file))
+                self.session_docs = self.document_loader(text=summarization_file)
+                tokens = self.num_tokens(self.session_docs)
+                summarization_combine_template = tmp.summarization_document_template
                 if 4000 < tokens < 10000:
                     chain_type = SummarizationChainTypes.MAP_REDUCE
+                elif tokens > 9500:
+                    self.session_docs = self.vectorizer(self.session_docs)
+                    summarization_combine_template = (
+                        tmp.summarization_large_combine_prompt
+                    )
                 return self.create_rag_summarization_chain(
                     llm=self.create_llm(),
                     chain_type=chain_type,
-                    summarization_combine_template=tmp.summarization_document_template
+                    summarization_combine_template=summarization_combine_template,
                 )
